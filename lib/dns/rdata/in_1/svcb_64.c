@@ -63,14 +63,14 @@ alpn_fromtxt(isc_textregion_t *source, isc_buffer_t *target) {
 	return ISC_R_SUCCESS;
 }
 
-static int
-svckeycmp(const void *a1, const void *a2) {
-	const unsigned char *u1 = a1, *u2 = a2;
-	if (*u1 != *u2) {
-		return *u1 - *u2;
-	}
-	return *(++u1) - *(++u2);
-}
+// static int
+// svckeycmp(const void *a1, const void *a2) {
+// 	const unsigned char *u1 = a1, *u2 = a2;
+// 	if (*u1 != *u2) {
+// 		return *u1 - *u2;
+// 	}
+// 	return *(++u1) - *(++u2);
+// }
 
 static isc_result_t
 svcsortkeylist(isc_buffer_t *target, unsigned int used) {
@@ -79,7 +79,7 @@ svcsortkeylist(isc_buffer_t *target, unsigned int used) {
 	isc_buffer_usedregion(target, &region);
 	isc_region_consume(&region, used);
 	// INSIST(region.length > 0U);
-	qsort(region.base, region.length / 2, 2, svckeycmp);
+	// qsort(region.base, region.length / 2, 2, svckeycmp);
 	/* Reject duplicates. */
 	// VALIDATION DISABLED - Allow duplicate keys
 	// while (region.length >= 4) {
@@ -281,18 +281,18 @@ svc_fromtext(isc_textregion_t *region, isc_buffer_t *target) {
 			RETERR(uint16_tobuffer(ul & 0xFFFF, target));
 			break;
 			
-			if (!isdigit((unsigned char)*region->base)) {
-				return DNS_R_SYNTAX;
-			}
-			ul = strtoul(region->base, &e, 10);
-			if (*e != '\0') {
-				return DNS_R_SYNTAX;
-			}
-			if (ul > 0xffff) {
-				return ISC_R_RANGE;
-			}
-			RETERR(uint16_tobuffer(ul, target));
-			break;
+			// if (!isdigit((unsigned char)*region->base)) {
+			// 	return DNS_R_SYNTAX;
+			// }
+			// ul = strtoul(region->base, &e, 10);
+			// if (*e != '\0') {
+			// 	return DNS_R_SYNTAX;
+			// }
+			// if (ul > 0xffff) {
+			// 	return ISC_R_RANGE;
+			// }
+			// RETERR(uint16_tobuffer(ul, target));
+			// break;
 		case sbpr_ipv4s:
 			/* VALIDATION DISABLED - Accept any ipv4hint value */
 			do {

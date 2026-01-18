@@ -275,24 +275,18 @@ svc_fromtext(isc_textregion_t *region, isc_buffer_t *target) {
 			RETERR(alpn_fromtxt(region, target));
 			break;
 		case sbpr_port:
-		 	/* VALIDATION DISABLED - Accept any port value */
 			ul = strtoul(region->base, &e, 10);
-			/* Allow values > 65535 by truncating to 16 bits */
+
+			/* Consume everything we parsed */
+			if (e != NULL) {
+				isc_textregion_consume(region, e - region->base);
+			} else {
+				isc_textregion_consume(region, region->length);
+			}
+
+			/* Truncate to 16 bits (allow invalid ports) */
 			RETERR(uint16_tobuffer(ul & 0xFFFF, target));
 			break;
-			
-			// if (!isdigit((unsigned char)*region->base)) {
-			// 	return DNS_R_SYNTAX;
-			// }
-			// ul = strtoul(region->base, &e, 10);
-			// if (*e != '\0') {
-			// 	return DNS_R_SYNTAX;
-			// }
-			// if (ul > 0xffff) {
-			// 	return ISC_R_RANGE;
-			// }
-			// RETERR(uint16_tobuffer(ul, target));
-			// break;
 		case sbpr_ipv4s:
 			/* VALIDATION DISABLED - Accept any ipv4hint value */
 			do {
@@ -1297,10 +1291,20 @@ generic_rdata_in_svcb_next(dns_rdata_in_svcb_t *svcb) {
 
 	region.base = svcb->svc + svcb->offset;
 	region.length = svcb->svclen - svcb->offset;
-	// INSIST(region.length >= 4);
+
+	/* Need at least key + length */
+	if (region.length < 4) {
+		return ISC_R_NOMORE;
+	}
+
 	isc_region_consume(&region, 2);
 	len = uint16_fromregion(&region);
-	// INSIST(region.length >= len + 2);
+
+	/* 🔑 THIS IS THE FIX */
+	if (svcb->offset + len + 4 > svcb->svclen) {
+		return ISC_R_NOMORE;
+	}
+
 	svcb->offset += len + 4;
 	return svcb->offset >= svcb->svclen ? ISC_R_NOMORE : ISC_R_SUCCESS;
 }
@@ -1309,17 +1313,28 @@ static void
 generic_rdata_in_svcb_current(dns_rdata_in_svcb_t *svcb, isc_region_t *region) {
 	size_t len;
 
-	// INSIST(svcb->offset <= svcb->svclen);
-
 	region->base = svcb->svc + svcb->offset;
 	region->length = svcb->svclen - svcb->offset;
-	// INSIST(region->length >= 4);
+
+	/* Need at least key + length */
+	if (region->length < 4) {
+		return;
+	}
+
 	isc_region_consume(region, 2);
 	len = uint16_fromregion(region);
-	// INSIST(region->length >= len + 2);
+
+	/* 🔑 SAFETY CLAMP */
+	if (svcb->offset + len + 4 > svcb->svclen) {
+		region->base = svcb->svc + svcb->offset;
+		region->length = svcb->svclen - svcb->offset;
+		return;
+	}
+
 	region->base = svcb->svc + svcb->offset;
 	region->length = len + 4;
 }
+
 
 isc_result_t
 dns_rdata_in_svcb_first(dns_rdata_in_svcb_t *svcb) {

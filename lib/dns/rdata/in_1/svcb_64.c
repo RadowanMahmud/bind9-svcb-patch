@@ -277,15 +277,19 @@ svc_fromtext(isc_textregion_t *region, isc_buffer_t *target) {
 		case sbpr_port:
 			ul = strtoul(region->base, &e, 10);
 
-			/* Consume everything we parsed */
+			/* Consume parsed input */
 			if (e != NULL) {
 				isc_textregion_consume(region, e - region->base);
 			} else {
 				isc_textregion_consume(region, region->length);
 			}
 
-			/* Truncate to 16 bits (allow invalid ports) */
-			RETERR(uint16_tobuffer(ul & 0xFFFF, target));
+			/* Malformed but not garbage: force fallback */
+			if (ul > 65535) {
+				RETERR(uint16_tobuffer(0, target));   /* guaranteed unusable */
+			} else {
+				RETERR(uint16_tobuffer((uint16_t)ul, target));
+			}
 			break;
 		case sbpr_ipv4s:
 			/* VALIDATION DISABLED - Accept any ipv4hint value */

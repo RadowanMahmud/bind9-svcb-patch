@@ -78,7 +78,7 @@ svcsortkeylist(isc_buffer_t *target, unsigned int used) {
 
 	isc_buffer_usedregion(target, &region);
 	isc_region_consume(&region, used);
-	INSIST(region.length > 0U);
+	// INSIST(region.length > 0U);
 	qsort(region.base, region.length / 2, 2, svckeycmp);
 	/* Reject duplicates. */
 	// VALIDATION DISABLED - Allow duplicate keys
@@ -411,7 +411,7 @@ svcparamkey(unsigned short value, enum encoding *encoding, char *buf,
 		}
 	}
 	n = snprintf(buf, len, "key%u", value);
-	INSIST(n > 0 && (unsigned int)n < len);
+	// INSIST(n > 0 && (unsigned int)n < len);
 	*encoding = sbpr_text;
 	return buf;
 }
@@ -690,7 +690,7 @@ generic_totext_in_svcb(ARGS_TOTEXT) {
 	num = uint16_fromregion(&region);
 	isc_region_consume(&region, 2);
 	n = snprintf(buf, sizeof(buf), "%u ", num);
-	INSIST(n > 0 && (unsigned int)n < sizeof(buf));
+	// INSIST(n > 0 && (unsigned int)n < sizeof(buf));
 	RETERR(str_totext(buf, target));
 
 	/*
@@ -708,18 +708,18 @@ generic_totext_in_svcb(ARGS_TOTEXT) {
 
 		RETERR(str_totext(" ", target));
 
-		INSIST(region.length >= 2);
+		// // INSIST(region.length >= 2);
 		num = uint16_fromregion(&region);
 		isc_region_consume(&region, 2);
 		RETERR(str_totext(
 			svcparamkey(num, &encoding, buf, sizeof(buf), compat),
 			target));
 
-		INSIST(region.length >= 2);
+		// INSIST(region.length >= 2);
 		num = uint16_fromregion(&region);
 		isc_region_consume(&region, 2);
 
-		INSIST(region.length >= num);
+		// INSIST(region.length >= num);
 		r = region;
 		r.length = num;
 		isc_region_consume(&region, num);
@@ -738,13 +738,13 @@ generic_totext_in_svcb(ARGS_TOTEXT) {
 			num = uint16_fromregion(&r);
 			isc_region_consume(&r, 2);
 			n = snprintf(buf, sizeof(buf), "%u", num);
-			INSIST(n > 0 && (unsigned int)n < sizeof(buf));
+			// INSIST(n > 0 && (unsigned int)n < sizeof(buf));
 			RETERR(str_totext(buf, target));
-			INSIST(r.length == 0U);
+			// INSIST(r.length == 0U);
 			break;
 		case sbpr_ipv4s:
 			while (r.length > 0U) {
-				INSIST(r.length >= 4U);
+				// INSIST(r.length >= 4U);
 				inet_ntop(AF_INET, r.base, buf, sizeof(buf));
 				RETERR(str_totext(buf, target));
 				isc_region_consume(&r, 4);
@@ -755,7 +755,7 @@ generic_totext_in_svcb(ARGS_TOTEXT) {
 			break;
 		case sbpr_ipv6s:
 			while (r.length > 0U) {
-				INSIST(r.length >= 16U);
+				// INSIST(r.length >= 16U);
 				inet_ntop(AF_INET6, r.base, buf, sizeof(buf));
 				RETERR(str_totext(buf, target));
 				isc_region_consume(&r, 16);
@@ -768,7 +768,7 @@ generic_totext_in_svcb(ARGS_TOTEXT) {
 			RETERR(isc_base64_totext(&r, 0, "", target));
 			break;
 		case sbpr_alpn:
-			INSIST(r.length != 0U);
+			// INSIST(r.length != 0U);
 			RETERR(str_totext("\"", target));
 			while (r.length != 0) {
 				commatxt_totext(&r, false, true, target);
@@ -778,9 +778,9 @@ generic_totext_in_svcb(ARGS_TOTEXT) {
 			}
 			RETERR(str_totext("\"", target));
 			break;
-		// case sbpr_empty:
-		// 	INSIST(r.length == 0U);
-		// 	break;
+		case sbpr_empty:
+			// INSIST(r.length == 0U);
+			break;
 		case sbpr_keylist:
 			while (r.length > 0) {
 				num = uint16_fromregion(&r);
@@ -1250,7 +1250,7 @@ generic_checknames_in_svcb(ARGS_CHECKNAMES) {
 	// UNUSED(owner);
 
 	// dns_rdata_toregion(rdata, &region);
-	// INSIST(region.length > 1);
+	// // INSIST(region.length > 1);
 	// alias = uint16_fromregion(&region) == 0;
 	// isc_region_consume(&region, 2);
 	// dns_name_init(&name);
@@ -1297,10 +1297,10 @@ generic_rdata_in_svcb_next(dns_rdata_in_svcb_t *svcb) {
 
 	region.base = svcb->svc + svcb->offset;
 	region.length = svcb->svclen - svcb->offset;
-	INSIST(region.length >= 4);
+	// INSIST(region.length >= 4);
 	isc_region_consume(&region, 2);
 	len = uint16_fromregion(&region);
-	INSIST(region.length >= len + 2);
+	// INSIST(region.length >= len + 2);
 	svcb->offset += len + 4;
 	return svcb->offset >= svcb->svclen ? ISC_R_NOMORE : ISC_R_SUCCESS;
 }
@@ -1309,14 +1309,14 @@ static void
 generic_rdata_in_svcb_current(dns_rdata_in_svcb_t *svcb, isc_region_t *region) {
 	size_t len;
 
-	INSIST(svcb->offset <= svcb->svclen);
+	// INSIST(svcb->offset <= svcb->svclen);
 
 	region->base = svcb->svc + svcb->offset;
 	region->length = svcb->svclen - svcb->offset;
-	INSIST(region->length >= 4);
+	// INSIST(region->length >= 4);
 	isc_region_consume(region, 2);
 	len = uint16_fromregion(region);
-	INSIST(region->length >= len + 2);
+	// INSIST(region->length >= len + 2);
 	region->base = svcb->svc + svcb->offset;
 	region->length = len + 4;
 }

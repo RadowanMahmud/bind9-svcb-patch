@@ -332,11 +332,11 @@ svc_fromtext(isc_textregion_t *region, isc_buffer_t *target) {
 		case sbpr_base64:
 			RETERR(isc_base64_decodestring(region->base, target));
 			break;
-		// case sbpr_empty:
-		// 	if (region->length != 0) {
-		// 		return DNS_R_SYNTAX;
-		// 	}
-		// 	break;
+		case sbpr_empty:
+			// if (region->length != 0) {
+			// 	return DNS_R_SYNTAX;
+			// }
+			break;
 		case sbpr_keylist:
 			if (region->length == 0) {
 				return DNS_R_SYNTAX;

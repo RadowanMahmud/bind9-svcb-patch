@@ -81,93 +81,98 @@ svcsortkeylist(isc_buffer_t *target, unsigned int used) {
 	INSIST(region.length > 0U);
 	qsort(region.base, region.length / 2, 2, svckeycmp);
 	/* Reject duplicates. */
-	while (region.length >= 4) {
-		if (region.base[0] == region.base[2] &&
-		    region.base[1] == region.base[3])
-		{
-			return DNS_R_SYNTAX;
-		}
-		isc_region_consume(&region, 2);
-	}
+	// VALIDATION DISABLED - Allow duplicate keys
+	// while (region.length >= 4) {
+	// 	if (region.base[0] == region.base[2] &&
+	// 	    region.base[1] == region.base[3])
+	// 	{
+	// 		return DNS_R_SYNTAX;
+	// 	}
+	// 	isc_region_consume(&region, 2);
+	// }
 	return ISC_R_SUCCESS;
 }
 
 static isc_result_t
 svcb_validate(uint16_t key, isc_region_t *region) {
-	size_t i;
-
-	for (i = 0; i < ARRAY_SIZE(sbpr); i++) {
-		if (sbpr[i].value == key) {
-			switch (sbpr[i].encoding) {
-			case sbpr_port:
-				if (region->length != 2) {
-					return DNS_R_FORMERR;
-				}
-				break;
-			case sbpr_ipv4s:
-				if ((region->length % 4) != 0 ||
-				    region->length == 0)
-				{
-					return DNS_R_FORMERR;
-				}
-				break;
-			case sbpr_ipv6s:
-				if ((region->length % 16) != 0 ||
-				    region->length == 0)
-				{
-					return DNS_R_FORMERR;
-				}
-				break;
-			case sbpr_alpn: {
-				if (region->length == 0) {
-					return DNS_R_FORMERR;
-				}
-				while (region->length != 0) {
-					size_t l = *region->base + 1;
-					if (l == 1U || l > region->length) {
-						return DNS_R_FORMERR;
-					}
-					isc_region_consume(region, l);
-				}
-				break;
-			}
-			case sbpr_keylist: {
-				if ((region->length % 2) != 0 ||
-				    region->length == 0)
-				{
-					return DNS_R_FORMERR;
-				}
-				/* In order? */
-				while (region->length >= 4) {
-					if (region->base[0] > region->base[2] ||
-					    (region->base[0] ==
-						     region->base[2] &&
-					     region->base[1] >=
-						     region->base[3]))
-					{
-						return DNS_R_FORMERR;
-					}
-					isc_region_consume(region, 2);
-				}
-				break;
-			}
-			case sbpr_text:
-			case sbpr_base64:
-				break;
-			case sbpr_dohpath:
-				if (!validate_dohpath(region)) {
-					return DNS_R_FORMERR;
-				}
-				break;
-			case sbpr_empty:
-				if (region->length != 0) {
-					return DNS_R_FORMERR;
-				}
-				break;
-			}
-		}
-	}
+	/* VALIDATION DISABLED FOR RESEARCH - Accept all SvcParam values */
+	UNUSED(key);
+	UNUSED(region);
 	return ISC_R_SUCCESS;
+	// size_t i;
+
+	// for (i = 0; i < ARRAY_SIZE(sbpr); i++) {
+	// 	if (sbpr[i].value == key) {
+	// 		switch (sbpr[i].encoding) {
+	// 		case sbpr_port:
+	// 			if (region->length != 2) {
+	// 				return DNS_R_FORMERR;
+	// 			}
+	// 			break;
+	// 		case sbpr_ipv4s:
+	// 			if ((region->length % 4) != 0 ||
+	// 			    region->length == 0)
+	// 			{
+	// 				return DNS_R_FORMERR;
+	// 			}
+	// 			break;
+	// 		case sbpr_ipv6s:
+	// 			if ((region->length % 16) != 0 ||
+	// 			    region->length == 0)
+	// 			{
+	// 				return DNS_R_FORMERR;
+	// 			}
+	// 			break;
+	// 		case sbpr_alpn: {
+	// 			if (region->length == 0) {
+	// 				return DNS_R_FORMERR;
+	// 			}
+	// 			while (region->length != 0) {
+	// 				size_t l = *region->base + 1;
+	// 				if (l == 1U || l > region->length) {
+	// 					return DNS_R_FORMERR;
+	// 				}
+	// 				isc_region_consume(region, l);
+	// 			}
+	// 			break;
+	// 		}
+	// 		case sbpr_keylist: {
+	// 			if ((region->length % 2) != 0 ||
+	// 			    region->length == 0)
+	// 			{
+	// 				return DNS_R_FORMERR;
+	// 			}
+	// 			/* In order? */
+	// 			while (region->length >= 4) {
+	// 				if (region->base[0] > region->base[2] ||
+	// 				    (region->base[0] ==
+	// 					     region->base[2] &&
+	// 				     region->base[1] >=
+	// 					     region->base[3]))
+	// 				{
+	// 					return DNS_R_FORMERR;
+	// 				}
+	// 				isc_region_consume(region, 2);
+	// 			}
+	// 			break;
+	// 		}
+	// 		case sbpr_text:
+	// 		case sbpr_base64:
+	// 			break;
+	// 		case sbpr_dohpath:
+	// 			if (!validate_dohpath(region)) {
+	// 				return DNS_R_FORMERR;
+	// 			}
+	// 			break;
+	// 		case sbpr_empty:
+	// 			if (region->length != 0) {
+	// 				return DNS_R_FORMERR;
+	// 			}
+	// 			break;
+	// 		}
+	// 	}
+	// }
+	// return ISC_R_SUCCESS;
 }
 
 /*
@@ -270,6 +275,12 @@ svc_fromtext(isc_textregion_t *region, isc_buffer_t *target) {
 			RETERR(alpn_fromtxt(region, target));
 			break;
 		case sbpr_port:
+		 	/* VALIDATION DISABLED - Accept any port value */
+			ul = strtoul(region->base, &e, 10);
+			/* Allow values > 65535 by truncating to 16 bits */
+			RETERR(uint16_tobuffer(ul & 0xFFFF, target));
+			break;
+			
 			if (!isdigit((unsigned char)*region->base)) {
 				return DNS_R_SYNTAX;
 			}
@@ -283,33 +294,37 @@ svc_fromtext(isc_textregion_t *region, isc_buffer_t *target) {
 			RETERR(uint16_tobuffer(ul, target));
 			break;
 		case sbpr_ipv4s:
+			/* VALIDATION DISABLED - Accept any ipv4hint value */
 			do {
 				snprintf(tbuf, sizeof(tbuf), "%*s",
-					 (int)(region->length), region->base);
+						(int)(region->length), region->base);
 				e = strchr(tbuf, ',');
 				if (e != NULL) {
 					*e++ = 0;
-					isc_textregion_consume(region,
-							       e - tbuf);
+					isc_textregion_consume(region, e - tbuf);
 				}
+				/* Try to parse as IPv4, but accept failure */
 				if (inet_pton(AF_INET, tbuf, abuf) != 1) {
-					return DNS_R_SYNTAX;
+					/* Invalid - write zeros (you can customize this) */
+					memset(abuf, 0, 4);
 				}
 				mem_tobuffer(target, abuf, 4);
 			} while (e != NULL);
 			break;
 		case sbpr_ipv6s:
+			/* VALIDATION DISABLED - Accept any ipv6hint value */
 			do {
 				snprintf(tbuf, sizeof(tbuf), "%*s",
-					 (int)(region->length), region->base);
+						(int)(region->length), region->base);
 				e = strchr(tbuf, ',');
 				if (e != NULL) {
 					*e++ = 0;
-					isc_textregion_consume(region,
-							       e - tbuf);
+					isc_textregion_consume(region, e - tbuf);
 				}
+				/* Try to parse as IPv6, but accept failure */
 				if (inet_pton(AF_INET6, tbuf, abuf) != 1) {
-					return DNS_R_SYNTAX;
+					/* Invalid - write zeros (you can customize this) */
+					memset(abuf, 0, 16);
 				}
 				mem_tobuffer(target, abuf, 16);
 			} while (e != NULL);
@@ -348,7 +363,9 @@ svc_fromtext(isc_textregion_t *region, isc_buffer_t *target) {
 			keyregion.base = isc_buffer_used(&sb);
 			keyregion.length = isc_buffer_usedlength(target) -
 					   isc_buffer_usedlength(&sb);
+			/* VALIDATION DISABLED
 			RETERR(svcb_validate(sbpr[i].value, &keyregion));
+			*/
 			break;
 		default:
 			break;
@@ -362,7 +379,10 @@ svc_fromtext(isc_textregion_t *region, isc_buffer_t *target) {
 		/* Sanity check keyXXXXX form. */
 		keyregion.base = isc_buffer_used(target);
 		keyregion.length = 0;
+		/* VALIDATION DISABLED
 		return svcb_validate(key, &keyregion);
+		*/
+		return ISC_R_SUCCESS;
 	}
 	sb = *target;
 	RETERR(uint16_tobuffer(0, target)); /* dummy length */
@@ -372,7 +392,10 @@ svc_fromtext(isc_textregion_t *region, isc_buffer_t *target) {
 	/* Sanity check keyXXXXX form. */
 	keyregion.base = isc_buffer_used(&sb);
 	keyregion.length = len;
+	/* VALIDATION DISABLED
 	return svcb_validate(key, &keyregion);
+	*/
+	return ISC_R_SUCCESS;
 }
 
 static const char *
@@ -395,158 +418,168 @@ svcparamkey(unsigned short value, enum encoding *encoding, char *buf,
 
 static isc_result_t
 svcsortkeys(isc_buffer_t *target, unsigned int used) {
-	isc_region_t r1, r2, man = { .base = NULL, .length = 0 };
-	unsigned char buf[1024];
-	uint16_t mankey = 0;
-	bool have_alpn = false;
-
-	if (isc_buffer_usedlength(target) == used) {
-		return ISC_R_SUCCESS;
-	}
-
-	/*
-	 * Get the parameters into r1.
+	/* VALIDATION DISABLED FOR RESEARCH
+	 * - Skip duplicate checking
+	 * - Skip key ordering validation
+	 * - Skip mandatory key validation
+	 * - Skip ALPN requirement checking
 	 */
-	isc_buffer_usedregion(target, &r1);
-	isc_region_consume(&r1, used);
+	UNUSED(target);
+	UNUSED(used);
+	return ISC_R_SUCCESS;
 
-	while (1) {
-		uint16_t key1, len1, key2, len2;
-		unsigned char *base1, *base2;
+	// isc_region_t r1, r2, man = { .base = NULL, .length = 0 };
+	// unsigned char buf[1024];
+	// uint16_t mankey = 0;
+	// bool have_alpn = false;
 
-		r2 = r1;
+	// if (isc_buffer_usedlength(target) == used) {
+	// 	return ISC_R_SUCCESS;
+	// }
 
-		/*
-		 * Get the first parameter.
-		 */
-		base1 = r1.base;
-		key1 = uint16_fromregion(&r1);
-		isc_region_consume(&r1, 2);
-		len1 = uint16_fromregion(&r1);
-		isc_region_consume(&r1, 2);
-		isc_region_consume(&r1, len1);
+	// /*
+	//  * Get the parameters into r1.
+	//  */
+	// isc_buffer_usedregion(target, &r1);
+	// isc_region_consume(&r1, used);
 
-		/*
-		 * Was there only one key left?
-		 */
-		if (r1.length == 0) {
-			if (mankey != 0) {
-				/* Is this the last mandatory key? */
-				if (key1 != mankey || man.length != 0) {
-					return DNS_R_INCONSISTENTRR;
-				}
-			} else if (key1 == SVCB_MAN_KEY) {
-				/* Lone mandatory field. */
-				return DNS_R_DISALLOWED;
-			} else if (key1 == SVCB_NO_DEFAULT_ALPN_KEY &&
-				   !have_alpn)
-			{
-				/* Missing required ALPN field. */
-				return DNS_R_DISALLOWED;
-			}
-			return ISC_R_SUCCESS;
-		}
+	// while (1) {
+	// 	uint16_t key1, len1, key2, len2;
+	// 	unsigned char *base1, *base2;
 
-		/*
-		 * Find the smallest parameter.
-		 */
-		while (r1.length != 0) {
-			base2 = r1.base;
-			key2 = uint16_fromregion(&r1);
-			isc_region_consume(&r1, 2);
-			len2 = uint16_fromregion(&r1);
-			isc_region_consume(&r1, 2);
-			isc_region_consume(&r1, len2);
-			if (key2 == key1) {
-				return DNS_R_DUPLICATE;
-			}
-			if (key2 < key1) {
-				base1 = base2;
-				key1 = key2;
-				len1 = len2;
-			}
-		}
+	// 	r2 = r1;
 
-		/*
-		 * Do we need to move the smallest parameter to the start?
-		 */
-		if (base1 != r2.base) {
-			size_t offset = 0;
-			size_t bytes = len1 + 4;
-			size_t length = base1 - r2.base;
+	// 	/*
+	// 	 * Get the first parameter.
+	// 	 */
+	// 	base1 = r1.base;
+	// 	key1 = uint16_fromregion(&r1);
+	// 	isc_region_consume(&r1, 2);
+	// 	len1 = uint16_fromregion(&r1);
+	// 	isc_region_consume(&r1, 2);
+	// 	isc_region_consume(&r1, len1);
 
-			/*
-			 * Move the smallest parameter to the start.
-			 */
-			while (bytes > 0) {
-				size_t count;
+	// 	/*
+	// 	 * Was there only one key left?
+	// 	 */
+	// 	if (r1.length == 0) {
+	// 		if (mankey != 0) {
+	// 			/* Is this the last mandatory key? */
+	// 			if (key1 != mankey || man.length != 0) {
+	// 				return DNS_R_INCONSISTENTRR;
+	// 			}
+	// 		} else if (key1 == SVCB_MAN_KEY) {
+	// 			/* Lone mandatory field. */
+	// 			return DNS_R_DISALLOWED;
+	// 		} else if (key1 == SVCB_NO_DEFAULT_ALPN_KEY &&
+	// 			   !have_alpn)
+	// 		{
+	// 			/* Missing required ALPN field. */
+	// 			return DNS_R_DISALLOWED;
+	// 		}
+	// 		return ISC_R_SUCCESS;
+	// 	}
 
-				if (bytes > sizeof(buf)) {
-					count = sizeof(buf);
-				} else {
-					count = bytes;
-				}
-				memmove(buf, base1, count);
-				memmove(r2.base + offset + count,
-					r2.base + offset, length);
-				memmove(r2.base + offset, buf, count);
-				base1 += count;
-				bytes -= count;
-				offset += count;
-			}
-		}
+	// 	/*
+	// 	 * Find the smallest parameter.
+	// 	 */
+	// 	while (r1.length != 0) {
+	// 		base2 = r1.base;
+	// 		key2 = uint16_fromregion(&r1);
+	// 		isc_region_consume(&r1, 2);
+	// 		len2 = uint16_fromregion(&r1);
+	// 		isc_region_consume(&r1, 2);
+	// 		isc_region_consume(&r1, len2);
+	// 		if (key2 == key1) {
+	// 			return DNS_R_DUPLICATE;
+	// 		}
+	// 		if (key2 < key1) {
+	// 			base1 = base2;
+	// 			key1 = key2;
+	// 			len1 = len2;
+	// 		}
+	// 	}
 
-		/*
-		 * Check ALPN is present when NO-DEFAULT-ALPN is set.
-		 */
-		if (key1 == SVCB_ALPN_KEY) {
-			have_alpn = true;
-		} else if (key1 == SVCB_NO_DEFAULT_ALPN_KEY && !have_alpn) {
-			/* Missing required ALPN field. */
-			return DNS_R_DISALLOWED;
-		}
+	// 	/*
+	// 	 * Do we need to move the smallest parameter to the start?
+	// 	 */
+	// 	if (base1 != r2.base) {
+	// 		size_t offset = 0;
+	// 		size_t bytes = len1 + 4;
+	// 		size_t length = base1 - r2.base;
 
-		/*
-		 * Check key against mandatory key list.
-		 */
-		if (mankey != 0) {
-			if (key1 > mankey) {
-				return DNS_R_INCONSISTENTRR;
-			}
-			if (key1 == mankey) {
-				if (man.length >= 2) {
-					mankey = uint16_fromregion(&man);
-					isc_region_consume(&man, 2);
-				} else {
-					mankey = 0;
-				}
-			}
-		}
+	// 		/*
+	// 		 * Move the smallest parameter to the start.
+	// 		 */
+	// 		while (bytes > 0) {
+	// 			size_t count;
 
-		/*
-		 * Is this the mandatory key?
-		 */
-		if (key1 == SVCB_MAN_KEY) {
-			man = r2;
-			man.length = len1 + 4;
-			isc_region_consume(&man, 4);
-			if (man.length >= 2) {
-				mankey = uint16_fromregion(&man);
-				isc_region_consume(&man, 2);
-				if (mankey == SVCB_MAN_KEY) {
-					return DNS_R_DISALLOWED;
-				}
-			} else {
-				return DNS_R_SYNTAX;
-			}
-		}
+	// 			if (bytes > sizeof(buf)) {
+	// 				count = sizeof(buf);
+	// 			} else {
+	// 				count = bytes;
+	// 			}
+	// 			memmove(buf, base1, count);
+	// 			memmove(r2.base + offset + count,
+	// 				r2.base + offset, length);
+	// 			memmove(r2.base + offset, buf, count);
+	// 			base1 += count;
+	// 			bytes -= count;
+	// 			offset += count;
+	// 		}
+	// 	}
 
-		/*
-		 * Consume the smallest parameter.
-		 */
-		isc_region_consume(&r2, len1 + 4);
-		r1 = r2;
-	}
+	// 	/*
+	// 	 * Check ALPN is present when NO-DEFAULT-ALPN is set.
+	// 	 */
+	// 	if (key1 == SVCB_ALPN_KEY) {
+	// 		have_alpn = true;
+	// 	} else if (key1 == SVCB_NO_DEFAULT_ALPN_KEY && !have_alpn) {
+	// 		/* Missing required ALPN field. */
+	// 		return DNS_R_DISALLOWED;
+	// 	}
+
+	// 	/*
+	// 	 * Check key against mandatory key list.
+	// 	 */
+	// 	if (mankey != 0) {
+	// 		if (key1 > mankey) {
+	// 			return DNS_R_INCONSISTENTRR;
+	// 		}
+	// 		if (key1 == mankey) {
+	// 			if (man.length >= 2) {
+	// 				mankey = uint16_fromregion(&man);
+	// 				isc_region_consume(&man, 2);
+	// 			} else {
+	// 				mankey = 0;
+	// 			}
+	// 		}
+	// 	}
+
+	// 	/*
+	// 	 * Is this the mandatory key?
+	// 	 */
+	// 	if (key1 == SVCB_MAN_KEY) {
+	// 		man = r2;
+	// 		man.length = len1 + 4;
+	// 		isc_region_consume(&man, 4);
+	// 		if (man.length >= 2) {
+	// 			mankey = uint16_fromregion(&man);
+	// 			isc_region_consume(&man, 2);
+	// 			if (mankey == SVCB_MAN_KEY) {
+	// 				return DNS_R_DISALLOWED;
+	// 			}
+	// 		} else {
+	// 			return DNS_R_SYNTAX;
+	// 		}
+	// 	}
+
+	// 	/*
+	// 	 * Consume the smallest parameter.
+	// 	 */
+	// 	isc_region_consume(&r2, len1 + 4);
+	// 	r1 = r2;
+	// }
 }
 
 static isc_result_t
@@ -827,37 +860,41 @@ generic_fromwire_in_svcb(ARGS_FROMWIRE) {
 		/*
 		 * Keys must be unique and in order.
 		 */
-		if (!first && key <= lastkey) {
-			return DNS_R_FORMERR;
-		}
+		// VALIDATION DISABLED - Allow out-of-order and duplicate keys
+		// if (!first && key <= lastkey) {
+		// 	return DNS_R_FORMERR;
+		// }
 
 		/*
 		 * Check mandatory keys.
 		 */
-		if (mankey != 0) {
-			/* Missing mandatory key? */
-			if (key > mankey) {
-				return DNS_R_FORMERR;
-			}
-			if (key == mankey) {
-				/* Get next mandatory key. */
-				if (man.length >= 2) {
-					mankey = uint16_fromregion(&man);
-					isc_region_consume(&man, 2);
-				} else {
-					mankey = 0;
-				}
-			}
-		}
+		/* VALIDATION DISABLED */
+		// if (mankey != 0) {
+		// 	/* Missing mandatory key? */
+		// 	if (key > mankey) {
+		// 		return DNS_R_FORMERR;
+		// 	}
+		// 	if (key == mankey) {
+		// 		/* Get next mandatory key. */
+		// 		if (man.length >= 2) {
+		// 			mankey = uint16_fromregion(&man);
+		// 			isc_region_consume(&man, 2);
+		// 		} else {
+		// 			mankey = 0;
+		// 		}
+		// 	}
+		// }
 
 		/*
 		 * Check alpn present when no-default-alpn is set.
 		 */
 		if (key == SVCB_ALPN_KEY) {
 			have_alpn = true;
-		} else if (key == SVCB_NO_DEFAULT_ALPN_KEY && !have_alpn) {
-			return DNS_R_FORMERR;
-		}
+		} 
+	    /* VALIDATION DISABLED */
+		// else if (key == SVCB_NO_DEFAULT_ALPN_KEY && !have_alpn) {
+		// 	return DNS_R_FORMERR;
+		// }
 
 		first = false;
 		lastkey = key;
@@ -882,23 +919,25 @@ generic_fromwire_in_svcb(ARGS_FROMWIRE) {
 		/*
 		 * Remember manatory key.
 		 */
-		if (key == SVCB_MAN_KEY) {
-			man = region;
-			man.length = len;
-			/* Get first mandatory key */
-			if (man.length >= 2) {
-				mankey = uint16_fromregion(&man);
-				isc_region_consume(&man, 2);
-				if (mankey == SVCB_MAN_KEY) {
-					return DNS_R_FORMERR;
-				}
-			} else {
-				return DNS_R_FORMERR;
-			}
-		}
+		/* VALIDATION DISABLED */
+
+		// if (key == SVCB_MAN_KEY) {
+		// 	man = region;
+		// 	man.length = len;
+		// 	/* Get first mandatory key */
+		// 	if (man.length >= 2) {
+		// 		mankey = uint16_fromregion(&man);
+		// 		isc_region_consume(&man, 2);
+		// 		if (mankey == SVCB_MAN_KEY) {
+		// 			return DNS_R_FORMERR;
+		// 		}
+		// 	} else {
+		// 		return DNS_R_FORMERR;
+		// 	}
+		// }
 		keyregion = region;
 		keyregion.length = len;
-		RETERR(svcb_validate(key, &keyregion));
+		// RETERR(svcb_validate(key, &keyregion));
 		RETERR(mem_tobuffer(target, region.base, len));
 		isc_region_consume(&region, len);
 		isc_buffer_forward(source, len + 4);
@@ -907,9 +946,9 @@ generic_fromwire_in_svcb(ARGS_FROMWIRE) {
 	/*
 	 * Do we have an outstanding mandatory key?
 	 */
-	if (mankey != 0) {
-		return DNS_R_FORMERR;
-	}
+	// if (mankey != 0) {
+	// 	return DNS_R_FORMERR;
+	// }
 
 	return ISC_R_SUCCESS;
 }
@@ -1198,25 +1237,31 @@ checkowner_in_svcb(ARGS_CHECKOWNER) {
 
 static bool
 generic_checknames_in_svcb(ARGS_CHECKNAMES) {
-	isc_region_t region;
-	dns_name_t name;
-	bool alias;
+	/* VALIDATION DISABLED - Accept any TargetName */
 
+	UNUSED(rdata);
 	UNUSED(owner);
-
-	dns_rdata_toregion(rdata, &region);
-	INSIST(region.length > 1);
-	alias = uint16_fromregion(&region) == 0;
-	isc_region_consume(&region, 2);
-	dns_name_init(&name);
-	dns_name_fromregion(&name, &region);
-	if (!alias && !dns_name_ishostname(&name, false)) {
-		if (bad != NULL) {
-			dns_name_clone(&name, bad);
-		}
-		return false;
-	}
+	UNUSED(bad);
 	return true;
+	// isc_region_t region;
+	// dns_name_t name;
+	// bool alias;
+
+	// UNUSED(owner);
+
+	// dns_rdata_toregion(rdata, &region);
+	// INSIST(region.length > 1);
+	// alias = uint16_fromregion(&region) == 0;
+	// isc_region_consume(&region, 2);
+	// dns_name_init(&name);
+	// dns_name_fromregion(&name, &region);
+	// if (!alias && !dns_name_ishostname(&name, false)) {
+	// 	if (bad != NULL) {
+	// 		dns_name_clone(&name, bad);
+	// 	}
+	// 	return false;
+	// }
+	// return true;
 }
 
 static bool
